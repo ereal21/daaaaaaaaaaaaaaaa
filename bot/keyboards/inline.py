@@ -528,7 +528,7 @@ def payment_menu(url: str, label: str, lang: str) -> InlineKeyboardMarkup:
 def crypto_invoice_menu(invoice_id: str, lang: str) -> InlineKeyboardMarkup:
     """Return markup for crypto invoice."""
     inline_keyboard = [
-
+        [InlineKeyboardButton('🔄 Check payment', callback_data=f'check_{invoice_id}')],
         [InlineKeyboardButton(t(lang, 'cancel_payment'), callback_data=f'cancel_{invoice_id}')],
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
