@@ -1,5 +1,9 @@
-from yoomoney import Quickpay, Client
+import asyncio
 import random
+from typing import Optional
+
+from yoomoney import Quickpay, Client
+
 from bot.misc import EnvKeys
 
 
@@ -17,8 +21,16 @@ def quick_pay(message):
     return label, url
 
 
-async def check_payment_status(label: str):
-    client = Client(EnvKeys.ACCESS_TOKEN)
-    history = client.operation_history(label=label)
-    for operation in history.operations:
+async def check_payment_status(label: str) -> Optional[str]:
+    token = EnvKeys.ACCESS_TOKEN
+    if not token:
+        return None
+
+    def _history():
+        client = Client(token=token)
+        return client.operation_history(label=label)
+
+    history = await asyncio.to_thread(_history)
+    for operation in getattr(history, "operations", []):
         return operation.status
+    return None

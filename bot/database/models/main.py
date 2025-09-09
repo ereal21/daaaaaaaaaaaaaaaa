@@ -194,26 +194,6 @@ class UnfinishedOperations(Database.BASE):
         self.message_id = message_id
 
 
-class Achievement(Database.BASE):
-    __tablename__ = 'achievements'
-    code = Column(String(50), primary_key=True, unique=True)
-
-    def __init__(self, code: str):
-        self.code = code
-
-
-class UserAchievement(Database.BASE):
-    __tablename__ = 'user_achievements'
-    id = Column(Integer, primary_key=True)
-    user_id = Column(BigInteger, ForeignKey('users.telegram_id'), nullable=False)
-    achievement_code = Column(String(50), ForeignKey('achievements.code'), nullable=False)
-    achieved_at = Column(VARCHAR, nullable=False)
-
-    def __init__(self, user_id: int, achievement_code: str, achieved_at: str):
-        self.user_id = user_id
-        self.achievement_code = achievement_code
-        self.achieved_at = achieved_at
-
 
 class PromoCode(Database.BASE):
     __tablename__ = 'promo_codes'

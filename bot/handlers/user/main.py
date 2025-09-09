@@ -24,7 +24,6 @@ from bot.database.methods import (
     select_unfinished_operations, finish_operation, update_balance, create_operation,
     bought_items_list, check_value, get_subcategories, get_category_parent, get_user_language, update_user_language,
     get_unfinished_operation, get_user_unfinished_operation, get_promocode, add_values_to_item,
-    has_user_achievement, get_achievement_users, grant_achievement, get_user_count,
     get_out_of_stock_categories, get_out_of_stock_subcategories, get_out_of_stock_items,
     has_stock_notification, add_stock_notification, check_user_by_username,
 )
@@ -34,7 +33,7 @@ from bot.keyboards import (
     profile, rules, payment_menu, close, crypto_choice, crypto_invoice_menu, blackjack_controls,
     blackjack_bet_input_menu, blackjack_end_menu, blackjack_history_menu, feedback_menu,
     confirm_purchase_menu, games_menu, coinflip_menu, coinflip_side_menu,
-    achievements_menu, coinflip_create_confirm_menu, coinflip_waiting_menu, coinflip_rooms_menu, coinflip_join_confirm_menu,
+    coinflip_create_confirm_menu, coinflip_waiting_menu, coinflip_rooms_menu, coinflip_join_confirm_menu,
     crypto_choice_purchase, notify_categories_list, notify_subcategories_list, notify_goods_list)
 
 from bot.localization import t
@@ -136,11 +135,6 @@ async def start(message: Message):
     user_db = check_user(user_id)
 
     user_lang = user_db.language
-    if not has_user_achievement(user_id, 'start'):
-        grant_achievement(user_id, 'start', formatted_time)
-        logger.info(f"User {user_id} unlocked achievement start")
-        if user_lang:
-            await bot.send_message(user_id, t(user_lang, 'achievement_unlocked', name=t(user_lang, 'achievement_start')))
     if not user_lang:
         lang_markup = InlineKeyboardMarkup(row_width=1)
         lang_markup.add(
@@ -486,11 +480,6 @@ async def blackjack_move_handler(call: CallbackQuery):
                 'result': 'loss',
                 'date': datetime.datetime.now().strftime('%Y-%m-%d')
             })
-            if stats['games'] == 1 and not has_user_achievement(user_id, 'first_blackjack'):
-                ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                grant_achievement(user_id, 'first_blackjack', ts)
-                await bot.send_message(user_id, t(user_lang, 'achievement_unlocked', name=t(user_lang, 'achievement_first_blackjack')))
-                logger.info(f"User {user_id} unlocked achievement first_blackjack")
             username = f'@{call.from_user.username}' if call.from_user.username else call.from_user.full_name
             await bot.send_message(
                 EnvKeys.OWNER_ID,
@@ -530,11 +519,6 @@ async def blackjack_move_handler(call: CallbackQuery):
         TgConfig.STATE[user_id] = None
         stats = TgConfig.BLACKJACK_STATS.setdefault(user_id, {'games':0,'wins':0,'losses':0,'profit':0,'history':[]})
         stats['games'] += 1
-        if stats['games'] == 1 and not has_user_achievement(user_id, 'first_blackjack'):
-            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            grant_achievement(user_id, 'first_blackjack', ts)
-            await bot.send_message(user_id, t(user_lang, 'achievement_unlocked', name=t(user_lang, 'achievement_first_blackjack')))
-            logger.info(f"User {user_id} unlocked achievement first_blackjack")
         if result == 'win':
             stats['wins'] += 1
         elif result == 'loss':
@@ -662,11 +646,6 @@ async def coinflip_receive_bet(message: Message):
         win = result == side
         stats = TgConfig.COINFLIP_STATS.setdefault(user_id, {'games':0,'wins':0,'losses':0,'profit':0})
         stats['games'] += 1
-        if stats['games'] == 1 and not has_user_achievement(user_id, 'first_coinflip'):
-            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            grant_achievement(user_id, 'first_coinflip', ts)
-            await bot.send_message(user_id, t(user_lang, 'achievement_unlocked', name=t(user_lang, 'achievement_first_coinflip')))
-            logger.info(f"User {user_id} unlocked achievement first_coinflip")
         if win:
             update_balance(user_id, bet * 2)
             stats['wins'] += 1
@@ -826,12 +805,6 @@ async def coinflip_join_handler(call: CallbackQuery):
     for pid, win in ((winner_id, True), (loser_id, False)):
         stats = TgConfig.COINFLIP_STATS.setdefault(pid, {'games':0,'wins':0,'losses':0,'profit':0})
         stats['games'] += 1
-        if stats['games'] == 1 and not has_user_achievement(pid, 'first_coinflip'):
-            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            grant_achievement(pid, 'first_coinflip', ts)
-            plang = get_user_language(pid) or 'en'
-            await bot.send_message(pid, t(plang, 'achievement_unlocked', name=t(plang, 'achievement_first_coinflip')))
-            logger.info(f"User {pid} unlocked achievement first_coinflip")
         if win:
             stats['wins'] += 1
             stats['profit'] += bet
@@ -1143,11 +1116,6 @@ async def buy_item_callback_handler(call: CallbackQuery):
                     pass
             if gift_to:
                 await bot.send_message(user_id, t(lang, 'gift_sent', user=f'@{gift_name}'), reply_markup=back('profile'))
-                if not has_user_achievement(user_id, 'gift_sent'):
-                    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    grant_achievement(user_id, 'gift_sent', ts)
-                    await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_gift_sent')))
-                    logger.info(f"User {user_id} unlocked achievement gift_sent")
             else:
                 try:
                     await bot.edit_message_text(
@@ -1160,10 +1128,6 @@ async def buy_item_callback_handler(call: CallbackQuery):
                     pass
             TgConfig.STATE.pop(f'{user_id}_gift_to', None)
             TgConfig.STATE.pop(f'{user_id}_gift_name', None)
-            if not has_user_achievement(user_id, 'first_purchase'):
-                grant_achievement(user_id, 'first_purchase', formatted_time)
-                await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_purchase')))
-                logger.info(f"User {user_id} unlocked achievement first_purchase")
 
             recipient = gift_to or user_id
             recipient_lang = get_user_language(recipient) or lang
@@ -1525,36 +1489,6 @@ async def quests_callback_handler(call: CallbackQuery):
 
 
 
-async def achievements_callback_handler(call: CallbackQuery):
-    bot, user_id = await get_bot_user_ids(call)
-    lang = get_user_language(user_id) or 'en'
-    total_users = get_user_count()
-    parts = call.data.split(':')
-    view = parts[0]
-    page = int(parts[1]) if len(parts) > 1 else 0
-    per_page = 5
-    start = page * per_page
-    show_unlocked = view == 'achievements_unlocked'
-    codes = [
-        code for code in TgConfig.ACHIEVEMENTS
-        if has_user_achievement(user_id, code) == show_unlocked
-    ]
-    lines = []
-    for idx, code in enumerate(codes[start:start + per_page], start=start + 1):
-        count = get_achievement_users(code)
-        percent = round((count / total_users) * 100, 1) if total_users else 0
-        status = '✅' if show_unlocked else '❌'
-        lines.append(f"{idx}. {status} {t(lang, f'achievement_{code}')} — {percent}%")
-    text = f"{t(lang, 'achievements')}\n\n" + "\n".join(lines)
-    markup = achievements_menu(page, len(codes), lang, show_unlocked)
-    await bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        text=text,
-        reply_markup=markup,
-    )
-
-
 async def notify_stock_callback_handler(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     lang = get_user_language(user_id) or 'en'
@@ -1739,6 +1673,24 @@ async def checking_payment(call: CallbackQuery):
     label = call.data[6:]
     info = get_unfinished_operation(label)
 
+    async def update_invoice(text: str) -> None:
+        """Edit invoice message text or caption depending on its type."""
+        with contextlib.suppress(Exception):
+            if call.message.content_type == "photo":
+                await bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=message_id,
+                    caption=text,
+                    reply_markup=back("profile"),
+                )
+            else:
+                await bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=message_id,
+                    text=text,
+                    reply_markup=back("profile"),
+                )
+
     if info:
         user_id_db, operation_value, _ = info
         lang = get_user_language(user_id_db) or 'en'
@@ -1881,30 +1833,7 @@ async def checking_payment(call: CallbackQuery):
                     )
                     if gift_to:
                         await bot.send_message(user_id, t(lang, 'gift_sent', user=f'@{gift_name}'), reply_markup=back('profile'))
-                        if not has_user_achievement(user_id, 'gift_sent'):
-                            ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                            grant_achievement(user_id, 'gift_sent', ts)
-                            await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_gift_sent')))
-                            logger.info(f"User {user_id} unlocked achievement gift_sent")
-
-
-
-                    if gift_to:
-                        await bot.send_message(user_id, t(lang, 'gift_sent', user=f'@{gift_name}'), reply_markup=back('profile'))
-                    else:
-                        try:
-                            await bot.edit_message_text(
-                                chat_id=call.message.chat.id,
-                                message_id=message_id,
-                                text=f'✅ Item purchased. 📦 Total Purchases: {purchases}',
-                                reply_markup=back('profile')
-                            )
-                        except MessageNotModified:
-                            pass
-                    if not has_user_achievement(user_id, 'first_purchase'):
-                        grant_achievement(user_id, 'first_purchase', formatted_time)
-                        await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_purchase')))
-                        logger.info(f"User {user_id} unlocked achievement first_purchase")
+                    await update_invoice(f'✅ Item purchased. 📦 Total Purchases: {purchases}')
                     TgConfig.STATE.pop(f'{user_id}_pending_item', None)
                     TgConfig.STATE.pop(f'{user_id}_price', None)
                     TgConfig.STATE.pop(f'{user_id}_promo_applied', None)
@@ -1913,31 +1842,6 @@ async def checking_payment(call: CallbackQuery):
                     recipient_lang = get_user_language(recipient) or lang
                     asyncio.create_task(schedule_feedback(bot, recipient, recipient_lang, value_data['item_name']))
                     await bot.send_message(user_id, t(lang, 'top_up_completed'))
-                    if not has_user_achievement(user_id, 'first_topup'):
-                        ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        grant_achievement(user_id, 'first_topup', ts)
-                        await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_topup')))
-                        logger.info(f"User {user_id} unlocked achievement first_topup")
-
-                    try:
-                        await bot.edit_message_text(
-                            chat_id=call.message.chat.id,
-                            message_id=message_id,
-                            text=f'✅ Item purchased. 📦 Total Purchases: {purchases}',
-                            reply_markup=back('profile')
-                        )
-                    except MessageNotModified:
-                        pass
-
-                    TgConfig.STATE.pop(f'{user_id}_pending_item', None)
-                    TgConfig.STATE.pop(f'{user_id}_price', None)
-                    TgConfig.STATE.pop(f'{user_id}_promo_applied', None)
-
-                    await bot.send_message(user_id, t(lang, 'top_up_completed'))
-
-                    recipient = gift_to or user_id
-                    recipient_lang = get_user_language(recipient) or lang
-                    asyncio.create_task(schedule_feedback(bot, recipient, recipient_lang, value_data['item_name']))
 
                 else:
                     await bot.send_message(user_id, '❌ Item out of stock')
@@ -1947,16 +1851,8 @@ async def checking_payment(call: CallbackQuery):
 
                 create_operation(user_id, operation_value, formatted_time)
                 update_balance(user_id, operation_value)
-                await bot.edit_message_text(chat_id=call.message.chat.id,
-                                            message_id=message_id,
-                                            text=f'✅ Balance topped up by {operation_value}€',
-                                            reply_markup=back('profile'))
+                await update_invoice(f'✅ Balance topped up by {operation_value}€')
                 await bot.send_message(user_id, t(lang, 'top_up_completed'))
-                if not has_user_achievement(user_id, 'first_topup'):
-                    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    grant_achievement(user_id, 'first_topup', ts)
-                    await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_topup')))
-                    logger.info(f"User {user_id} unlocked achievement first_topup")
 
                 username = f'@{call.from_user.username}' if call.from_user.username else call.from_user.full_name
                 await bot.send_message(
@@ -2107,8 +2003,6 @@ def register_user_handlers(dp: Dispatcher):
                                        lambda c: c.data == 'gift')
     dp.register_callback_query_handler(quests_callback_handler,
                                        lambda c: c.data == 'quests')
-    dp.register_callback_query_handler(achievements_callback_handler,
-                                       lambda c: c.data.startswith('achievements'))
     dp.register_callback_query_handler(notify_stock_callback_handler,
                                        lambda c: c.data == 'notify_stock')
     dp.register_callback_query_handler(notify_category_callback_handler,

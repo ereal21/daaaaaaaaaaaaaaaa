@@ -2,7 +2,7 @@ import sqlalchemy.exc
 import random
 import datetime
 from bot.database.models import User, ItemValues, Goods, Categories, BoughtGoods, \
-    Operations, UnfinishedOperations, PromoCode, UserAchievement, StockNotification
+    Operations, UnfinishedOperations, PromoCode, StockNotification
 from bot.database import Database
 
 
@@ -83,13 +83,6 @@ def create_promocode(code: str, discount: int, expires_at: str | None) -> None:
     session = Database().session
     session.add(PromoCode(code=code, discount=discount, expires_at=expires_at, active=True))
     session.commit()
-
-
-def grant_achievement(user_id: int, code: str, achieved_at: str) -> None:
-    session = Database().session
-    session.add(UserAchievement(user_id=user_id, achievement_code=code, achieved_at=achieved_at))
-    session.commit()
-
 
 def add_stock_notification(user_id: int, item_name: str) -> None:
     session = Database().session

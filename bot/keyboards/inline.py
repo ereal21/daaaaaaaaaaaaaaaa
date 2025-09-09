@@ -154,23 +154,6 @@ def games_menu(lang: str = 'en') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
-def achievements_menu(page: int, total: int, lang: str = 'en', unlocked: bool = False) -> InlineKeyboardMarkup:
-    prefix = 'achievements_unlocked' if unlocked else 'achievements'
-    nav = []
-    if page > 0:
-        nav.append(InlineKeyboardButton('⬅️', callback_data=f'{prefix}:{page-1}'))
-    if (page + 1) * 5 < total:
-        nav.append(InlineKeyboardButton('➡️', callback_data=f'{prefix}:{page+1}'))
-    rows = [nav] if nav else []
-    toggle_label = t(lang, 'show_locked') if unlocked else t(lang, 'show_unlocked')
-    toggle_cb = 'achievements:0' if unlocked else 'achievements_unlocked:0'
-    rows.append([InlineKeyboardButton(toggle_label, callback_data=toggle_cb)])
-    rows.append([InlineKeyboardButton(t(lang, 'back'), callback_data='profile')])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
-
-
-
 def coinflip_menu(lang: str = 'en') -> InlineKeyboardMarkup:
     inline_keyboard = [
         [InlineKeyboardButton(t(lang, 'find_game'), callback_data='coinflip_find')],
@@ -528,7 +511,7 @@ def payment_menu(url: str, label: str, lang: str) -> InlineKeyboardMarkup:
 def crypto_invoice_menu(invoice_id: str, lang: str) -> InlineKeyboardMarkup:
     """Return markup for crypto invoice."""
     inline_keyboard = [
-
+        [InlineKeyboardButton('🔄 Check payment', callback_data=f'check_{invoice_id}')],
         [InlineKeyboardButton(t(lang, 'cancel_payment'), callback_data=f'cancel_{invoice_id}')],
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)

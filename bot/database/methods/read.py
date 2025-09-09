@@ -4,7 +4,7 @@ import sqlalchemy
 from sqlalchemy import exc, func
 
 from bot.database.models import Database, User, ItemValues, Goods, Categories, Role, BoughtGoods, \
-    Operations, UnfinishedOperations, PromoCode, Achievement, UserAchievement, StockNotification
+    Operations, UnfinishedOperations, PromoCode, StockNotification
 
 
 def check_user(telegram_id: int) -> User | None:
@@ -205,19 +205,6 @@ def get_users_with_tickets() -> list[tuple[int, str | None, int]]:
     return Database().session.query(
         User.telegram_id, User.username, User.lottery_tickets
     ).filter(User.lottery_tickets > 0).all()
-
-
-def has_user_achievement(user_id: int, code: str) -> bool:
-    return Database().session.query(UserAchievement).filter_by(
-        user_id=user_id, achievement_code=code
-    ).first() is not None
-
-
-def get_achievement_users(code: str) -> int:
-    session = Database().session
-    return session.query(func.count(UserAchievement.user_id)).filter(
-        UserAchievement.achievement_code == code
-    ).scalar()
 
 
 def get_all_admins() -> list[int]:

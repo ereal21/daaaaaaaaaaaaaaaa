@@ -1,3 +1,4 @@
+import asyncio
 import requests
 from typing import Tuple
 
@@ -31,12 +32,17 @@ def create_payment(amount_eur: float, pay_currency: str) -> Tuple[str, str, floa
     return str(data["payment_id"]), data["pay_address"], float(data["pay_amount"])
 
 
-def check_payment(payment_id: str) -> str | None:
+async def check_payment(payment_id: str) -> str | None:
     """Return payment status string for given payment id."""
+
     headers = {"x-api-key": API_KEY}
-    resp = requests.get(f"{API_BASE}/payment/{payment_id}", headers=headers)
-    if resp.status_code == 404:
-        return None
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get("payment_status")
+
+    def _do_request() -> str | None:
+        resp = requests.get(f"{API_BASE}/payment/{payment_id}", headers=headers)
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        data = resp.json()
+        return data.get("payment_status")
+
+    return await asyncio.to_thread(_do_request)
