@@ -1739,6 +1739,24 @@ async def checking_payment(call: CallbackQuery):
     label = call.data[6:]
     info = get_unfinished_operation(label)
 
+    async def update_invoice(text: str) -> None:
+        """Edit invoice message text or caption depending on its type."""
+        with contextlib.suppress(Exception):
+            if call.message.content_type == "photo":
+                await bot.edit_message_caption(
+                    chat_id=call.message.chat.id,
+                    message_id=message_id,
+                    caption=text,
+                    reply_markup=back("profile"),
+                )
+            else:
+                await bot.edit_message_text(
+                    chat_id=call.message.chat.id,
+                    message_id=message_id,
+                    text=text,
+                    reply_markup=back("profile"),
+                )
+
     if info:
         user_id_db, operation_value, _ = info
         lang = get_user_language(user_id_db) or 'en'
@@ -1886,21 +1904,7 @@ async def checking_payment(call: CallbackQuery):
                             grant_achievement(user_id, 'gift_sent', ts)
                             await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_gift_sent')))
                             logger.info(f"User {user_id} unlocked achievement gift_sent")
-
-
-
-                    if gift_to:
-                        await bot.send_message(user_id, t(lang, 'gift_sent', user=f'@{gift_name}'), reply_markup=back('profile'))
-                    else:
-                        try:
-                            await bot.edit_message_text(
-                                chat_id=call.message.chat.id,
-                                message_id=message_id,
-                                text=f'✅ Item purchased. 📦 Total Purchases: {purchases}',
-                                reply_markup=back('profile')
-                            )
-                        except MessageNotModified:
-                            pass
+                    await update_invoice(f'✅ Item purchased. 📦 Total Purchases: {purchases}')
                     if not has_user_achievement(user_id, 'first_purchase'):
                         grant_achievement(user_id, 'first_purchase', formatted_time)
                         await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_purchase')))
@@ -1919,26 +1923,6 @@ async def checking_payment(call: CallbackQuery):
                         await bot.send_message(user_id, t(lang, 'achievement_unlocked', name=t(lang, 'achievement_first_topup')))
                         logger.info(f"User {user_id} unlocked achievement first_topup")
 
-                    try:
-                        await bot.edit_message_text(
-                            chat_id=call.message.chat.id,
-                            message_id=message_id,
-                            text=f'✅ Item purchased. 📦 Total Purchases: {purchases}',
-                            reply_markup=back('profile')
-                        )
-                    except MessageNotModified:
-                        pass
-
-                    TgConfig.STATE.pop(f'{user_id}_pending_item', None)
-                    TgConfig.STATE.pop(f'{user_id}_price', None)
-                    TgConfig.STATE.pop(f'{user_id}_promo_applied', None)
-
-                    await bot.send_message(user_id, t(lang, 'top_up_completed'))
-
-                    recipient = gift_to or user_id
-                    recipient_lang = get_user_language(recipient) or lang
-                    asyncio.create_task(schedule_feedback(bot, recipient, recipient_lang, value_data['item_name']))
-
                 else:
                     await bot.send_message(user_id, '❌ Item out of stock')
             else:
@@ -1947,10 +1931,7 @@ async def checking_payment(call: CallbackQuery):
 
                 create_operation(user_id, operation_value, formatted_time)
                 update_balance(user_id, operation_value)
-                await bot.edit_message_text(chat_id=call.message.chat.id,
-                                            message_id=message_id,
-                                            text=f'✅ Balance topped up by {operation_value}€',
-                                            reply_markup=back('profile'))
+                await update_invoice(f'✅ Balance topped up by {operation_value}€')
                 await bot.send_message(user_id, t(lang, 'top_up_completed'))
                 if not has_user_achievement(user_id, 'first_topup'):
                     ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
